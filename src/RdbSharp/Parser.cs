@@ -4,11 +4,6 @@ namespace RdbSharp;
 
 public sealed class Parser
 {
-    public static void ParseLine(string line)
-    {
-        
-    }
-
     public static void Parse(string filePath)
     {
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -45,10 +40,14 @@ public sealed class Parser
                     Console.WriteLine($"Selecting DB {dbIndex}.");
                     break;
                 }
-                case (byte)Constants.RDB_OPCODE.AUX:
-                    Console.WriteLine(ReadString(br));
-                    Console.WriteLine(ReadString(br));
+                case (byte) Constants.RDB_OPCODE.AUX:
+                {
+                    var k = Encoding.ASCII.GetBytes(ReadString(br));
+                    var v = Encoding.ASCII.GetBytes(ReadString(br));
+                    var aux = new AuxField(k, v);
+                    Console.WriteLine(aux.ToString());
                     break;
+                }
                 case (byte) Constants.RDB_OPCODE.RESIZEDB:
                 {
                     Console.WriteLine("Found RESIZE DB opcode.");
@@ -58,6 +57,7 @@ public sealed class Parser
                 }
                 case (byte)Constants.RDB_OPCODE.EXPIRETIME_MS:
                     Console.WriteLine("Found EXPIRETIME MS opcode.");
+                    long expireTimeMs = br.ReadInt64(); 
                     break;
                 case (byte)Constants.RDB_OPCODE.EXPIRETIME:
                     Console.WriteLine("Found EXPIRET MS opcode.");
@@ -78,7 +78,7 @@ public sealed class Parser
 
     private static void ReadObject(BinaryReader br, Constants.RDB_TYPE objectType)
     {
-        //Console.WriteLine(objectType);
+        Console.WriteLine(objectType);
         
         switch (objectType)
         {
@@ -90,28 +90,20 @@ public sealed class Parser
             }
             case Constants.RDB_TYPE.LIST:
             {
-                var listLength = ReadLength(br);
-                Console.WriteLine($"  List length: {listLength}");
-                for (var i = 0; i < listLength; i++)
+                var length = ReadLength(br);
+                Console.WriteLine($"  List length: {length}");
+                for (var i = 0; i < length; i++)
                 {
                     var item = ReadString(br);
                     Console.WriteLine($"    List item {i}: {item}");
                 }
                 break;
             }
-            case Constants.RDB_TYPE.LIST_QUICKLIST_2:
+            case Constants.RDB_TYPE.SET:
             {
-                var items = ParseQuickList2(br);
-                Console.WriteLine($"  List length: {items.Count}");
-
-                foreach (var (i, item) in items.Index())
-                {
-                    Console.WriteLine($"    List item {i}: {item}");
-                }
-                
+                Console.WriteLine($"  Set");
                 break;
             }
-            case Constants.RDB_TYPE.SET:
             case Constants.RDB_TYPE.ZSET:
             case Constants.RDB_TYPE.HASH:
             case Constants.RDB_TYPE.ZSET_2:
@@ -127,9 +119,31 @@ public sealed class Parser
             case Constants.RDB_TYPE.STREAM_LISTPACKS:
             case Constants.RDB_TYPE.HASH_LISTPACK:
             case Constants.RDB_TYPE.ZSET_LISTPACK:
-            //case Constants.RDB_TYPE.LIST_QUICKLIST_2:
+            case Constants.RDB_TYPE.LIST_QUICKLIST_2:
+            {
+                var items = ParseQuickList2(br);
+                Console.WriteLine($"  List length: {items.Count}");
+
+                foreach (var (i, item) in items.Index())
+                {
+                    Console.WriteLine($"    List item {i}: {item}");
+                }
+                
+                break;
+            }
             case Constants.RDB_TYPE.STREAM_LISTPACKS_2:
             case Constants.RDB_TYPE.SET_LISTPACK:
+            {
+                var items = ParseSetListPack(br);
+                Console.WriteLine($"  Set length: {items.Count}");
+
+                foreach (var (i, item) in items.Index())
+                {
+                    Console.WriteLine($"    Set item {i}: {item}");
+                }
+                
+                break;
+            }
             case Constants.RDB_TYPE.STREAM_LISTPACKS_3:
             case Constants.RDB_TYPE.HASH_METADATA_PRE_GA:
             case Constants.RDB_TYPE.HASH_LISTPACK_EX_PRE_GA:
@@ -158,6 +172,8 @@ public sealed class Parser
         {
             if (length == Constants.RDB_ENC_INT8)
             {
+                // TODO fix this
+                return $"{(byte)br.ReadChar()}";
                 var value = br.ReadBytes(1);
                 return Encoding.ASCII.GetString(value);
             }
@@ -182,7 +198,6 @@ public sealed class Parser
         }
 
         var bytes = br.ReadBytes(length);
-
         return Encoding.ASCII.GetString(bytes);
     }
 
@@ -195,7 +210,7 @@ public sealed class Parser
         bytes.Add(br.ReadByte());
 
         var encType = (bytes[0] & 0xC0) >> 6;
-        
+
         switch (encType)
         {
             case Constants.RDB_ENCVAL:
@@ -240,6 +255,13 @@ public sealed class Parser
         return length;
     }
 
+    private static HashSet<string> ParseSetListPack(BinaryReader br)
+    {
+        var entries = ParseListPack(br);
+
+        return [..entries];
+    }
+
     private static List<string> ParseQuickList2(BinaryReader br)
     {
         var items = new List<string>();
@@ -260,20 +282,12 @@ public sealed class Parser
 
     private static List<string> ParseListPack(BinaryReader br)
     {
-        var items = new List<string>();
-        
         var length = ReadLength(br);
 
         var payload = br.ReadBytes((int)length);
 
         var bytes = new ReadOnlySpan<byte>(payload);
         
-        var pos = 0;
-
-        pos += 4;
-        
-        var numElements = (bytes[pos++] & 0xFF) << 0 | (bytes[pos++] & 0xFF) << 8;
-
         return ListPackParser.ParseListpack(bytes.ToArray());
     }
 }
