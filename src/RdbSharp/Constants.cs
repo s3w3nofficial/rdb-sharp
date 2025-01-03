@@ -1,11 +1,15 @@
 namespace RdbSharp;
 
-public class Constants
+internal sealed class Constants
 {
     public enum OpCode : byte
     {
+        EOF = 0xFF,
         SELECTDB = 0xFE,
-        EOF = 0xFF
+        EXPIRETIME = 0xFD,
+        EXPIRETIMEMS = 0xFC,
+        RESIZEDB = 0xDB,
+        AUX = 0xFA
     }
     
     public enum RdbObjectType : byte

@@ -2,25 +2,16 @@ using System.Text;
 
 namespace RdbSharp;
 
-public class Parser
+public sealed class Parser
 {
-    private readonly string _filePath;
-    
-    public Parser(string filePath)
-    {
-        ArgumentNullException.ThrowIfNull(filePath);
-        
-        _filePath = filePath;
-    }
-
-    public void ParseLine(string line)
+    public static void ParseLine(string line)
     {
         
     }
 
-    public void Parse()
+    public static void Parse(string filePath)
     {
-        using var fs = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
+        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         using var br = new BinaryReader(fs);
         
         var magic = Encoding.ASCII.GetString(br.ReadBytes(5));
@@ -54,6 +45,9 @@ public class Parser
                     Console.WriteLine($"Selecting DB {dbIndex}.");
                     break;
                 }
+                case (byte)Constants.OpCode.AUX:
+                    Console.WriteLine("Found AUX opcode.");
+                    break;
                 default:
                 {
                     var objectType = (Constants.RdbObjectType)opcode;
@@ -76,7 +70,7 @@ public class Parser
         {
             case Constants.RdbObjectType.String:
             {
-                string value = ReadString(br);
+                var value = ReadString(br);
                 Console.WriteLine($"  Value (String): {value}");
                 break;
             }
