@@ -2,29 +2,50 @@ namespace RdbSharp;
 
 internal sealed class Constants
 {
-    public enum OpCode : byte
+    public enum RDB_OPCODE : byte
     {
-        EOF = 0xFF,
-        SELECTDB = 0xFE,
-        EXPIRETIME = 0xFD,
-        EXPIRETIMEMS = 0xFC,
-        RESIZEDB = 0xFB,
-        AUX = 0xFA
+        SLOT_INFO = 244,
+        FUNCTION2 = 245,
+        FUNCTION = 246,
+        MODULE_AUX = 247,
+        IDLE = 248,
+        FREQ = 249,
+        AUX = 250,
+        RESIZEDB = 251,
+        EXPIRETIME_MS = 252,
+        EXPIRETIME = 253,
+        SELECTDB = 254,
+        EOF = 255
     }
     
-    public enum RdbObjectType : byte
+    public enum RDB_TYPE : byte
     {
-        String = 0,
-        List = 1,
-        Set = 2,
-        SortedSet = 3,
-        Hash = 4,
-        ZipMap = 9,
-        ZipList = 10,
-        IntSet = 11,
-        SortedSetZipList = 12,
-        HashMapZipList = 13,
-        ListQuickList = 14,
+        STRING = 0,
+        LIST = 1,
+        SET = 2,
+        ZSET = 3,
+        HASH = 4,
+        ZSET_2 = 5,
+        MODULE_PRE_GA = 6,
+        MODULE_2 = 7,
+        HASH_ZIPMAP = 9,
+        LIST_ZIPLIST = 10,
+        SET_INTSET = 11,
+        ZSET_ZIPLIST = 12,
+        HASH_ZIPLIST = 13,
+        LIST_QUICKLIST = 14,
+        STREAM_LISTPACKS = 15,
+        HASH_LISTPACK = 16,
+        ZSET_LISTPACK = 17,
+        LIST_QUICKLIST_2 = 18,
+        STREAM_LISTPACKS_2 = 19,
+        SET_LISTPACK = 20,
+        STREAM_LISTPACKS_3 = 21,
+        HASH_METADATA_PRE_GA = 22,
+        HASH_LISTPACK_EX_PRE_GA = 23,
+        HASH_METADATA = 24,
+        HASH_LISTPACK_EX = 25,
+        MAX = 26
     }
     
     public const byte RDB_6BITLEN = 0;
