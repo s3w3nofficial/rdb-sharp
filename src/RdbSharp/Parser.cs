@@ -41,16 +41,31 @@ public sealed class Parser
                     goto EOF;
                 case (byte) Constants.OpCode.SELECTDB:
                 {
-                    var dbIndex = ReadLength(br, out var isEncoded);
+                    var dbIndex = ReadLength(br);
                     Console.WriteLine($"Selecting DB {dbIndex}.");
                     break;
                 }
                 case (byte)Constants.OpCode.AUX:
-                    Console.WriteLine("Found AUX opcode.");
+                    Console.WriteLine(ReadString(br));
+                    Console.WriteLine(ReadString(br));
+                    break;
+                case (byte) Constants.OpCode.RESIZEDB:
+                {
+                    Console.WriteLine("Found RESIZE DB opcode.");
+                    var dbIndex = ReadLength(br);
+                    var expireSize = ReadLength(br);
+                    break;
+                }
+                case (byte)Constants.OpCode.EXPIRETIMEMS:
+                    Console.WriteLine("Found EXPIRETIME MS opcode.");
+                    break;
+                case (byte)Constants.OpCode.EXPIRETIME:
+                    Console.WriteLine("Found EXPIRET MS opcode.");
                     break;
                 default:
                 {
                     var objectType = (Constants.RdbObjectType)opcode;
+                    Console.WriteLine(objectType);
                     ParseKeyValuePair(br, objectType);
                     break;
                 }
@@ -62,9 +77,9 @@ public sealed class Parser
 
     private static void ParseKeyValuePair(BinaryReader br, Constants.RdbObjectType objectType)
     {
-        string key = ReadString(br);
+        var key = ReadString(br);
         Console.WriteLine($"Key: {key}");
-
+        
         // 2. Parse the value depending on the object type.
         switch (objectType)
         {
@@ -78,7 +93,7 @@ public sealed class Parser
             {
                 // A simplistic approach: Redis lists can be stored as quicklists, ziplists, etc.
                 // We’ll read an integer that might be the length, then read each item, etc.
-                var listLength = ReadLength(br, out bool isEncoded);
+                var listLength = ReadLength(br);
                 Console.WriteLine($"  List length: {listLength}");
                 for (var i = 0; i < listLength; i++)
                 {
@@ -88,8 +103,14 @@ public sealed class Parser
                 break;
             }
             case Constants.RdbObjectType.Set:
-            case Constants.RdbObjectType.ZSet:
+            case Constants.RdbObjectType.SortedSet:
             case Constants.RdbObjectType.Hash:
+            case Constants.RdbObjectType.ZipMap:
+            case Constants.RdbObjectType.ZipList:
+            case Constants.RdbObjectType.IntSet:
+            case Constants.RdbObjectType.SortedSetZipList:
+            case Constants.RdbObjectType.HashMapZipList:
+            case Constants.RdbObjectType.ListQuickList:
             {
                 // For demonstration, let's just skip them or handle them in a similar pattern
                 // This is where you would implement your data structure parsing logic.
@@ -106,60 +127,90 @@ public sealed class Parser
     
     private static string ReadString(BinaryReader br)
     {
-        var length = ReadLength(br, out var isEncoded);
-        
+        //var length = ReadLength(br, out var isEncoded);
+        var (length, isEncoded) = ReadLengthWithEncoding(br);
+
         if (isEncoded)
         {
-            // Actual RDB can have integer encodings, LZF-compressions, etc.
-            // We’re skipping all that for simplicity:
-            return $"[Encoded data length={length}]";
+            if (length == Constants.RDB_ENC_INT8)
+            {
+                var value = br.ReadBytes(1);
+                return Encoding.ASCII.GetString(value);
+            }
+            else if (length == Constants.RDB_ENC_INT16)
+            {
+                var value = br.ReadBytes(2);
+                return Encoding.ASCII.GetString(value);
+            }
+            else if (length == Constants.RDB_ENC_INT32)
+            {
+                var value = br.ReadBytes(4);
+                return Encoding.ASCII.GetString(value);
+            }
+            else if (length == Constants.RDB_ENC_LZF)
+            {
+                return "LZF";
+            }
         }
-        else
-        {
-            var data = br.ReadBytes((int)length);
-            return Encoding.UTF8.GetString(data);
-        }
+
+        var bytes = br.ReadBytes(length);
+        return Encoding.ASCII.GetString(bytes);
     }
 
-    private static long ReadLength(BinaryReader br, out bool isEncoded)
+    private static (int length, bool isEncoded) ReadLengthWithEncoding(BinaryReader br)
     {
-        var lenByte = br.ReadByte();
-        isEncoded = false;
+        var length = 0;
+        var isEncoded = false;
+        
+        var bytes = new List<byte>();
+        bytes.Add(br.ReadByte());
 
-        // 2-bit encoding at the top of the byte
-        var type = (byte)((lenByte & 0xC0) >> 6);
-        var value = (byte)(lenByte & 0x3F);
+        var encType = (bytes[0] & 0xC0) >> 6;
 
-        switch (type)
+        switch (encType)
         {
-            // 00xxxxxx: value is lenByte & 0x3F
+            case Constants.RDB_ENCVAL:
+            {
+                isEncoded = true;
+                length = bytes[0] & 0x3F;
+                break;
+            }
             case Constants.RDB_6BITLEN:
-                return value;
-            // 01xxxxxx: 16-bit integer
+                length = bytes[0] & 0x3F;
+                break;
             case Constants.RDB_14BITLEN:
             {
-                var nextByte = br.ReadByte();
-                return (value << 8) | nextByte;
+                bytes.Add(br.ReadByte());
+                length = ((bytes[0] & 0x3F) << 8) | bytes[1];
+                break;
             }
-            // 10xxxxxx: 32-bit integer
             case Constants.RDB_32BITLEN:
             {
-                // Actually read entire 4 bytes; we've read 1 already, so do more carefully:
-                var b2 = br.ReadByte();
-                var b3 = br.ReadByte();
-                var b4 = br.ReadByte();
-
-                // Reconstruct the integer: value << 24, etc. 
-                // But note 'value' is the 6-bit from lenByte.
-                // This is a simplified approach; real RDB can differ in layout.
-                var result = (value << 24) | (b2 << 16) | (b3 << 8) | b4;
-                return result;
+                /*
+                bytes.Add(br.ReadByte());
+                bytes.Add(br.ReadByte());
+                bytes.Add(br.ReadByte());
+                length = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+                */
+                length = (int)br.ReadUInt32();
+                break;
+            }
+            case Constants.RDB_64BITLEN:
+            {
+                length = (int)br.ReadUInt64();
+                break;
             }
             default:
-                // 11xxxxxx => special encoding
-                // e.g., LZF compression or integer encoding
-                isEncoded = true;
-                return value; // In a real scenario, you'd parse further based on the type of encoding.
+                throw new Exception($"read_length_with_encoding: Invalid string encoding {encType} (encoding byte %{bytes[0]})");
         }
+        
+        return (length, isEncoded);
+    }
+
+    private static long ReadLength(BinaryReader br)
+    {
+        var (length, isEncoded) = ReadLengthWithEncoding(br);
+
+        return length;
     }
 }

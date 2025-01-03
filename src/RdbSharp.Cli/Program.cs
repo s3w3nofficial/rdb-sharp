@@ -8,4 +8,6 @@ if (args.Length < 1)
 
 var rdbPath = args[0];
 
+//var rdbPath = "../../../../../tests/dumps/single_key.rdb";
+
 Parser.Parse(rdbPath);
