@@ -102,7 +102,7 @@ public sealed class Parser
             case Constants.RDB_TYPE.LIST_QUICKLIST_2:
             {
                 var items = ParseQuickList2(br);
-                Console.WriteLine($"  QuickList length: {items.Count}");
+                Console.WriteLine($"  List length: {items.Count}");
 
                 foreach (var (i, item) in items.Index())
                 {
@@ -173,7 +173,11 @@ public sealed class Parser
             }
             else if (length == Constants.RDB_ENC_LZF)
             {
-                return "LZF";
+                var clen = ReadLength(br);
+                // expected length
+                var l = ReadLength(br);
+                var value = CLZF2.Decompress(br.ReadBytes((int)clen));
+                return Encoding.ASCII.GetString(value);
             }
         }
 
@@ -238,9 +242,13 @@ public sealed class Parser
 
     private static List<string> ParseQuickList2(BinaryReader br)
     {
-        var length = ReadLength(br);
         var items = new List<string>();
-
+        
+        // quick list length
+        var length = ReadLength(br);
+        
+        var len = ReadLength(br);
+        
         for (var i = 0; i < length; i++)
         {
             var entries = ParseListPack(br);
@@ -255,23 +263,17 @@ public sealed class Parser
         var items = new List<string>();
         
         var length = ReadLength(br);
+
+        var payload = br.ReadBytes((int)length);
+
+        var bytes = new ReadOnlySpan<byte>(payload);
         
-        var payload = ReadString(br);
-
-        var bytes = new ReadOnlySpan<byte>(Encoding.ASCII.GetBytes(payload));
-
         var pos = 0;
 
         pos += 4;
         
         var numElements = (bytes[pos++] & 0xFF) << 0 | (bytes[pos++] & 0xFF) << 8;
 
-        for (int i = 0; i < numElements; i++)
-        {
-            items.Add("a");
-        }
-
-        return items;
+        return ListPackParser.ParseListpack(bytes.ToArray());
     }
-
 }
