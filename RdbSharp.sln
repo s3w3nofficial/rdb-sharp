@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F08830D7-78A9-4941-9E28-EA2160340DBB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RdbSharp", "src\RdbSharp\RdbSharp.csproj", "{F69D5639-6C83-410E-A130-BAEABBD4A8A4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{83B439C7-98DD-47CB-BEF5-DACAC2C11304}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RdbSharp.UnitTests", "tests\RdbSharp.UnitTests\RdbSharp.UnitTests.csproj", "{F33770C8-FD99-46AF-8656-9CAECF883329}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RdbSharp.Cli", "src\RdbSharp.Cli\RdbSharp.Cli.csproj", "{F61580F8-26AC-4010-8413-C6427B302DAD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F69D5639-6C83-410E-A130-BAEABBD4A8A4} = {F08830D7-78A9-4941-9E28-EA2160340DBB}
+		{F33770C8-FD99-46AF-8656-9CAECF883329} = {83B439C7-98DD-47CB-BEF5-DACAC2C11304}
+		{F61580F8-26AC-4010-8413-C6427B302DAD} = {F08830D7-78A9-4941-9E28-EA2160340DBB}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F69D5639-6C83-410E-A130-BAEABBD4A8A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F69D5639-6C83-410E-A130-BAEABBD4A8A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F69D5639-6C83-410E-A130-BAEABBD4A8A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F69D5639-6C83-410E-A130-BAEABBD4A8A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F33770C8-FD99-46AF-8656-9CAECF883329}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F33770C8-FD99-46AF-8656-9CAECF883329}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F33770C8-FD99-46AF-8656-9CAECF883329}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F33770C8-FD99-46AF-8656-9CAECF883329}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F61580F8-26AC-4010-8413-C6427B302DAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F61580F8-26AC-4010-8413-C6427B302DAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F61580F8-26AC-4010-8413-C6427B302DAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F61580F8-26AC-4010-8413-C6427B302DAD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
