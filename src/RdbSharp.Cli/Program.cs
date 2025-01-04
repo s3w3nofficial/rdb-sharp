@@ -1,13 +1,16 @@
 ﻿using RdbSharp;
 
-if (args.Length < 1)
+if (args.Length < 2)
 {
-    Console.WriteLine("Usage: RdbSharp <path-to-rdb>");
+    Console.WriteLine("Usage: RdbSharp <path-to-rdb> <format>");
     return;
 }
 
 var rdbPath = args[0];
 
-//var rdbPath = "../../../../../tests/dumps/single_key.rdb";
+var parser = new RdbSharpParser(rdbPath);
 
-Parser.Parse(rdbPath);
+IEntry? entry;
+while ((entry = parser.NextEntry()) != null)
+{
+}

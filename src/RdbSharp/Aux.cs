@@ -2,12 +2,12 @@ using System.Text;
 
 namespace RdbSharp;
 
-public class AuxField
+public class Aux : IEntry
 {
     private readonly byte[] _key;
     private readonly byte[] _value;
     
-    public AuxField(byte[] key, byte[] value)
+    public Aux(byte[] key, byte[] value)
     {
         _key = key;
         _value = value;
@@ -39,4 +39,5 @@ public class AuxField
         return sb.ToString();
     }
 
+    public EntryType Type => EntryType.AUX;
 }

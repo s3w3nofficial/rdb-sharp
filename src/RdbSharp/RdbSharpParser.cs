@@ -2,12 +2,17 @@ using System.Text;
 
 namespace RdbSharp;
 
-public sealed class Parser
+public sealed class RdbSharpParser : IDisposable
 {
-    public static void Parse(string filePath)
+    private readonly BinaryReader _br;
+    private readonly FileStream _fs;
+
+    private bool hasNext = true;
+    
+    public RdbSharpParser(string filePath)
     {
-        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        using var br = new BinaryReader(fs);
+        var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        var br = new BinaryReader(fs);
         
         var magic = Encoding.ASCII.GetString(br.ReadBytes(5));
         if (magic != Constants.RDB_MAGIC)
@@ -21,61 +26,67 @@ public sealed class Parser
             throw new Exception($"Invalid RDB version: {versionStr}");
         }
         Console.WriteLine($"RDB Version: {version}");
-
-        while (true)
-        {
-            if (fs.Position >= fs.Length)
-                break;
-            
-            var opcode = br.ReadByte();
-            
-            switch (opcode)
-            {
-                case (byte)Constants.RDB_OPCODE.EOF:
-                    Console.WriteLine("Found EOF opcode. Stopping parse.");
-                    goto EOF;
-                case (byte) Constants.RDB_OPCODE.SELECTDB:
-                {
-                    var dbIndex = ReadLength(br);
-                    Console.WriteLine($"Selecting DB {dbIndex}.");
-                    break;
-                }
-                case (byte) Constants.RDB_OPCODE.AUX:
-                {
-                    var k = Encoding.ASCII.GetBytes(ReadString(br));
-                    var v = Encoding.ASCII.GetBytes(ReadString(br));
-                    var aux = new AuxField(k, v);
-                    Console.WriteLine(aux.ToString());
-                    break;
-                }
-                case (byte) Constants.RDB_OPCODE.RESIZEDB:
-                {
-                    Console.WriteLine("Found RESIZE DB opcode.");
-                    var dbIndex = ReadLength(br);
-                    var expireSize = ReadLength(br);
-                    break;
-                }
-                case (byte)Constants.RDB_OPCODE.EXPIRETIME_MS:
-                    Console.WriteLine("Found EXPIRETIME MS opcode.");
-                    long expireTimeMs = br.ReadInt64(); 
-                    break;
-                case (byte)Constants.RDB_OPCODE.EXPIRETIME:
-                    Console.WriteLine("Found EXPIRET MS opcode.");
-                    break;
-                default:
-                {
-                    var objectType = (Constants.RDB_TYPE)opcode;
-                    var key = ReadString(br);
-                    Console.WriteLine($"Key: {key}");
-                    ReadObject(br, objectType);
-                    break;
-                }
-            }
-        }
         
-        EOF: ;
+        _fs = fs;
+        _br = br;
     }
 
+    public IEntry? NextEntry()
+    {
+        if (!hasNext)
+        {
+            return null;
+        }
+        
+        var opcode = _br.ReadByte();
+        
+        switch (opcode)
+        {
+            case (byte)Constants.RDB_OPCODE.EOF:
+                Console.WriteLine("Found EOF opcode. Stopping parse.");
+                hasNext = false;
+                return new EOF();
+            case (byte) Constants.RDB_OPCODE.SELECTDB:
+            {
+                var dbIndex = ReadLength(_br);
+                Console.WriteLine($"Selecting DB {dbIndex}.");
+                return new SelectDb();
+            }
+            case (byte) Constants.RDB_OPCODE.AUX:
+            {
+                var k = Encoding.ASCII.GetBytes(ReadString(_br));
+                var v = Encoding.ASCII.GetBytes(ReadString(_br));
+                var aux = new Aux(k, v);
+                Console.WriteLine(aux.ToString());
+                return aux;
+            }
+            case (byte) Constants.RDB_OPCODE.RESIZEDB:
+            {
+                Console.WriteLine("Found RESIZE DB opcode.");
+                var dbIndex = ReadLength(_br);
+                var expireSize = ReadLength(_br);
+                return new ResizeDb();
+            }
+            case (byte)Constants.RDB_OPCODE.EXPIRETIME_MS:
+                Console.WriteLine("Found EXPIRETIME MS opcode.");
+                long expireTimeMs = _br.ReadInt64(); 
+                break;
+            case (byte)Constants.RDB_OPCODE.EXPIRETIME:
+                Console.WriteLine("Found EXPIRET MS opcode.");
+                break;
+            default:
+            {
+                var objectType = (Constants.RDB_TYPE)opcode;
+                var key = ReadString(_br);
+                Console.WriteLine($"Key: {key}");
+                ReadObject(_br, objectType);
+                return new KeyValuePair();
+            }
+        }
+
+        return null;
+    }
+    
     private static void ReadObject(BinaryReader br, Constants.RDB_TYPE objectType)
     {
         Console.WriteLine(objectType);
@@ -101,7 +112,13 @@ public sealed class Parser
             }
             case Constants.RDB_TYPE.SET:
             {
-                Console.WriteLine($"  Set");
+                var length = ReadLength(br);
+                Console.WriteLine($"  Set length: {length}");
+                for (var i = 0; i < length; i++)
+                {
+                    var item = ReadString(br);
+                    Console.WriteLine($"    Set item {i}: {item}");
+                }
                 break;
             }
             case Constants.RDB_TYPE.ZSET:
@@ -289,5 +306,11 @@ public sealed class Parser
         var bytes = new ReadOnlySpan<byte>(payload);
         
         return ListPackParser.ParseListpack(bytes.ToArray());
+    }
+
+    public void Dispose()
+    {
+        _br.Dispose();
+        _fs.Dispose();
     }
 }
