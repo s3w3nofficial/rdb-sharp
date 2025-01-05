@@ -43,29 +43,25 @@ public sealed class RdbSharpParser : IDisposable
         switch (opcode)
         {
             case (byte)Constants.RDB_OPCODE.EOF:
-                Console.WriteLine("Found EOF opcode. Stopping parse.");
                 hasNext = false;
                 return new EOF();
             case (byte) Constants.RDB_OPCODE.SELECTDB:
             {
                 var dbIndex = ReadLength(_br);
-                Console.WriteLine($"Selecting DB {dbIndex}.");
-                return new SelectDb();
+                return new SelectDb(dbIndex);
             }
             case (byte) Constants.RDB_OPCODE.AUX:
             {
                 var k = Encoding.ASCII.GetBytes(ReadString(_br));
                 var v = Encoding.ASCII.GetBytes(ReadString(_br));
                 var aux = new Aux(k, v);
-                Console.WriteLine(aux.ToString());
                 return aux;
             }
             case (byte) Constants.RDB_OPCODE.RESIZEDB:
             {
-                Console.WriteLine("Found RESIZE DB opcode.");
                 var dbIndex = ReadLength(_br);
                 var expireSize = ReadLength(_br);
-                return new ResizeDb();
+                return new ResizeDb(dbIndex, expireSize);
             }
             case (byte)Constants.RDB_OPCODE.EXPIRETIME_MS:
                 Console.WriteLine("Found EXPIRETIME MS opcode.");
@@ -77,19 +73,18 @@ public sealed class RdbSharpParser : IDisposable
             default:
             {
                 var objectType = (Constants.RDB_TYPE)opcode;
-                var key = ReadString(_br);
-                Console.WriteLine($"Key: {key}");
-                ReadObject(_br, objectType);
-                return new KeyValuePair();
+                return ReadObject(_br, objectType);
             }
         }
 
         return null;
     }
     
-    private static void ReadObject(BinaryReader br, Constants.RDB_TYPE objectType)
+    private static KeyValuePair ReadObject(BinaryReader br, Constants.RDB_TYPE objectType)
     {
-        Console.WriteLine(objectType);
+        var key = ReadString(br);
+        Console.WriteLine($"Key: {key}");
+        //Console.WriteLine(objectType);
         
         switch (objectType)
         {
@@ -97,7 +92,7 @@ public sealed class RdbSharpParser : IDisposable
             {
                 var value = ReadString(br);
                 Console.WriteLine($"  Value (String): {value}");
-                break;
+                return new KeyValuePair(key, value, ValueType.VALUE);
             }
             case Constants.RDB_TYPE.LIST:
             {
@@ -108,7 +103,7 @@ public sealed class RdbSharpParser : IDisposable
                     var item = ReadString(br);
                     Console.WriteLine($"    List item {i}: {item}");
                 }
-                break;
+                return new KeyValuePair(key, new List<string>(), ValueType.LIST);
             }
             case Constants.RDB_TYPE.SET:
             {
@@ -119,7 +114,7 @@ public sealed class RdbSharpParser : IDisposable
                     var item = ReadString(br);
                     Console.WriteLine($"    Set item {i}: {item}");
                 }
-                break;
+                return new KeyValuePair(key, new List<string>(), ValueType.SET);
             }
             case Constants.RDB_TYPE.ZSET:
             case Constants.RDB_TYPE.HASH:
@@ -146,7 +141,7 @@ public sealed class RdbSharpParser : IDisposable
                     Console.WriteLine($"    List item {i}: {item}");
                 }
                 
-                break;
+                return new KeyValuePair(key, items, ValueType.QUICKLIST2);
             }
             case Constants.RDB_TYPE.STREAM_LISTPACKS_2:
             case Constants.RDB_TYPE.SET_LISTPACK:
@@ -159,7 +154,7 @@ public sealed class RdbSharpParser : IDisposable
                     Console.WriteLine($"    Set item {i}: {item}");
                 }
                 
-                break;
+                return new KeyValuePair(key, items, ValueType.SET_AS_LISTPACK);
             }
             case Constants.RDB_TYPE.STREAM_LISTPACKS_3:
             case Constants.RDB_TYPE.HASH_METADATA_PRE_GA:
@@ -179,6 +174,8 @@ public sealed class RdbSharpParser : IDisposable
                 break;
             }
         }
+
+        return new KeyValuePair(key, "", ValueType.VALUE);
     }
     
     private static string ReadString(BinaryReader br)
