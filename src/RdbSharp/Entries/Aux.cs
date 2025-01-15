@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace RdbSharp;
+namespace RdbSharp.Entries;
 
 public class Aux : IEntry
 {

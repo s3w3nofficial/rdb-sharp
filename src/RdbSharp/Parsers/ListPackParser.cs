@@ -1,10 +1,6 @@
 using System.Text;
 
-namespace RdbSharp;
-
-using System;
-using System.Collections.Generic;
-using System.Text;
+namespace RdbSharp.Parsers;
 
 public static class ListPackParser
 {
@@ -35,19 +31,19 @@ public static class ListPackParser
     /// <summary>
     /// Parses a listpack byte[] and returns the decoded entries as a List of strings.
     /// </summary>
-    public static List<string> ParseListpack(byte[] envelope)
+    public static List<string> ParseListPack(byte[] envelope)
     {
-        var parser = new InnerListpackParser(envelope);
+        var parser = new InnerListPackParser(envelope);
         return parser.Parse();
     }
 
-    private class InnerListpackParser
+    private class InnerListPackParser
     {
         private readonly byte[] envelope;
         private int pos;
         private readonly List<string> list;
 
-        public InnerListpackParser(byte[] envelope)
+        public InnerListPackParser(byte[] envelope)
         {
             this.envelope = envelope;
             this.pos = 0;
@@ -115,39 +111,28 @@ public static class ListPackParser
                        | ((envelope[pos++] & 0xFF) << 24);
             }
 
-            // If strLen > 0, we interpret this as a string entry
             if (strLen > 0)
             {
                 if (pos + strLen > envelope.Length)
                     throw new InvalidOperationException("Invalid string length exceeds buffer.");
 
-                // Extract the string
-                string strValue = Encoding.ASCII.GetString(envelope, pos, strLen);
+                var strValue = Encoding.ASCII.GetString(envelope, pos, strLen);
                 list.Add(strValue);
 
-                // Advance position by the string length
                 pos += strLen;
 
-                // According to the Java code, there's an additional "backlen" field that we skip
-                // getLenBytes(...) indicates how many bytes the "backlen" takes. 
-                int backlenSize = GetLenBytes(strLen);
+                var backlenSize = GetLenBytes(strLen);
                 pos += backlenSize;
                 return;
             }
 
-            // Otherwise, handle integer encodings
-            // We'll read 'val' as a 64-bit and convert if it's negative.
             long val;
             long negStart, negMax;
 
             // 7-bit unsigned int: 0xxxxxxx
             if ((b & LP_ENCODING_7BIT_UINT_MASK) == LP_ENCODING_7BIT_UINT)
             {
-                // The value is in the lower 7 bits of b
                 val = b & ~LP_ENCODING_7BIT_UINT_MASK;
-                // In the Java code, it does an extra pos++ here:
-                // "pos++;" because "Ints always have a entity size of one byte."
-                // We'll replicate that.
                 pos++;
                 list.Add(val.ToString());
                 return;
@@ -249,13 +234,16 @@ public static class ListPackParser
 
         private int GetLenBytes(int len)
         {
-            // This logic matches the Java version. It's presumably how
-            // many bytes Redis uses to store the 'previous entry length' (backlen).
-            if (len < 128)        return 1;
-            else if (len < 16384) return 2;
-            else if (len < 2097152)    return 3;
-            else if (len < 268435456)  return 4;
-            else                 return 5;
+            return len switch
+            {
+                // This logic matches the Java version. It's presumably how
+                // many bytes Redis uses to store the 'previous entry length' (backlen).
+                < 128 => 1,
+                < 16384 => 2,
+                < 2097152 => 3,
+                < 268435456 => 4,
+                _ => 5
+            };
         }
     }
 }

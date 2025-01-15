@@ -1,4 +1,7 @@
 using System.Text;
+using RdbSharp.Entries;
+using RdbSharp.Parsers;
+using KeyValuePair = RdbSharp.Entries.KeyValuePair;
 
 namespace RdbSharp;
 
@@ -7,7 +10,7 @@ public sealed class RdbSharpParser : IDisposable
     private readonly BinaryReader _br;
     private readonly FileStream _fs;
 
-    private bool hasNext = true;
+    private bool _hasNext = true;
     
     public RdbSharpParser(string filePath)
     {
@@ -33,7 +36,7 @@ public sealed class RdbSharpParser : IDisposable
 
     public IEntry? NextEntry()
     {
-        if (!hasNext)
+        if (!_hasNext)
         {
             return null;
         }
@@ -43,7 +46,7 @@ public sealed class RdbSharpParser : IDisposable
         switch (opcode)
         {
             case (byte)Constants.RDB_OPCODE.EOF:
-                hasNext = false;
+                _hasNext = false;
                 return new EOF();
             case (byte) Constants.RDB_OPCODE.SELECTDB:
             {
@@ -72,7 +75,7 @@ public sealed class RdbSharpParser : IDisposable
                 break;
             default:
             {
-                var objectType = (Constants.RDB_TYPE)opcode;
+                var objectType = (RdbType)opcode;
                 return ReadObject(_br, objectType);
             }
         }
@@ -80,7 +83,7 @@ public sealed class RdbSharpParser : IDisposable
         return null;
     }
     
-    private static KeyValuePair ReadObject(BinaryReader br, Constants.RDB_TYPE objectType)
+    private static KeyValuePair ReadObject(BinaryReader br, RdbType objectType)
     {
         var key = ReadString(br);
         Console.WriteLine($"Key: {key}");
@@ -88,83 +91,76 @@ public sealed class RdbSharpParser : IDisposable
         
         switch (objectType)
         {
-            case Constants.RDB_TYPE.STRING:
+            case RdbType.STRING:
             {
                 var value = ReadString(br);
                 Console.WriteLine($"  Value (String): {value}");
-                return new KeyValuePair(key, value, ValueType.VALUE);
+                return new KeyValuePair(key, value, objectType);
             }
-            case Constants.RDB_TYPE.LIST:
+            case RdbType.LIST:
             {
+                var items = new List<string>();
+                
                 var length = ReadLength(br);
-                Console.WriteLine($"  List length: {length}");
+                
                 for (var i = 0; i < length; i++)
                 {
                     var item = ReadString(br);
-                    Console.WriteLine($"    List item {i}: {item}");
+                    items.Add(item);
                 }
-                return new KeyValuePair(key, new List<string>(), ValueType.LIST);
+                
+                return new KeyValuePair(key, items, objectType);
             }
-            case Constants.RDB_TYPE.SET:
+            case RdbType.SET:
             {
                 var length = ReadLength(br);
+                
                 Console.WriteLine($"  Set length: {length}");
+                
                 for (var i = 0; i < length; i++)
                 {
                     var item = ReadString(br);
                     Console.WriteLine($"    Set item {i}: {item}");
                 }
-                return new KeyValuePair(key, new List<string>(), ValueType.SET);
+                
+                return new KeyValuePair(key, new List<string>(), objectType);
             }
-            case Constants.RDB_TYPE.ZSET:
-            case Constants.RDB_TYPE.HASH:
-            case Constants.RDB_TYPE.ZSET_2:
-            case Constants.RDB_TYPE.MODULE_PRE_GA:
-            case Constants.RDB_TYPE.MODULE_2:
-            /* Object types for encoded objects. */
-            case Constants.RDB_TYPE.HASH_ZIPMAP:
-            case Constants.RDB_TYPE.LIST_ZIPLIST:
-            case Constants.RDB_TYPE.SET_INTSET:
-            case Constants.RDB_TYPE.ZSET_ZIPLIST:
-            case Constants.RDB_TYPE.HASH_ZIPLIST:
-            case Constants.RDB_TYPE.LIST_QUICKLIST:
-            case Constants.RDB_TYPE.STREAM_LISTPACKS:
-            case Constants.RDB_TYPE.HASH_LISTPACK:
-            case Constants.RDB_TYPE.ZSET_LISTPACK:
-            case Constants.RDB_TYPE.LIST_QUICKLIST_2:
+            case RdbType.ZSET:
+            case RdbType.HASH:
+            case RdbType.ZSET_2:
+            case RdbType.MODULE_PRE_GA:
+            case RdbType.MODULE_2:
+            case RdbType.HASH_ZIPMAP:
+            case RdbType.LIST_ZIPLIST:
+            case RdbType.SET_INTSET:
+            case RdbType.ZSET_ZIPLIST:
+            case RdbType.HASH_ZIPLIST:
+            case RdbType.LIST_QUICKLIST:
+            case RdbType.STREAM_LISTPACKS:
+            case RdbType.HASH_LISTPACK:
+            case RdbType.ZSET_LISTPACK:
+            {
+                Console.WriteLine($"  Object type {objectType} not fully implemented in this example.");
+                break;
+            }
+            case RdbType.LIST_QUICKLIST_2:
             {
                 var items = ParseQuickList2(br);
-                Console.WriteLine($"  List length: {items.Count}");
-
-                foreach (var (i, item) in items.Index())
-                {
-                    Console.WriteLine($"    List item {i}: {item}");
-                }
-                
-                return new KeyValuePair(key, items, ValueType.QUICKLIST2);
+                return new KeyValuePair(key, items, objectType);
             }
-            case Constants.RDB_TYPE.STREAM_LISTPACKS_2:
-            case Constants.RDB_TYPE.SET_LISTPACK:
+            case RdbType.STREAM_LISTPACKS_2:
+            case RdbType.SET_LISTPACK:
             {
                 var items = ParseSetListPack(br);
-                Console.WriteLine($"  Set length: {items.Count}");
-
-                foreach (var (i, item) in items.Index())
-                {
-                    Console.WriteLine($"    Set item {i}: {item}");
-                }
-                
-                return new KeyValuePair(key, items, ValueType.SET_AS_LISTPACK);
+                return new KeyValuePair(key, items, objectType);
             }
-            case Constants.RDB_TYPE.STREAM_LISTPACKS_3:
-            case Constants.RDB_TYPE.HASH_METADATA_PRE_GA:
-            case Constants.RDB_TYPE.HASH_LISTPACK_EX_PRE_GA:
-            case Constants.RDB_TYPE.HASH_METADATA:
-            case Constants.RDB_TYPE.HASH_LISTPACK_EX:
-            case Constants.RDB_TYPE.MAX:
+            case RdbType.STREAM_LISTPACKS_3:
+            case RdbType.HASH_METADATA_PRE_GA:
+            case RdbType.HASH_LISTPACK_EX_PRE_GA:
+            case RdbType.HASH_METADATA:
+            case RdbType.HASH_LISTPACK_EX:
+            case RdbType.MAX:
             {
-                // For demonstration, let's just skip them or handle them in a similar pattern
-                // This is where you would implement your data structure parsing logic.
                 Console.WriteLine($"  Object type {objectType} not fully implemented in this example.");
                 break;
             }
@@ -175,7 +171,7 @@ public sealed class RdbSharpParser : IDisposable
             }
         }
 
-        return new KeyValuePair(key, "", ValueType.VALUE);
+        return new KeyValuePair(key, "", objectType);
     }
     
     private static string ReadString(BinaryReader br)
@@ -256,7 +252,7 @@ public sealed class RdbSharpParser : IDisposable
                 break;
             }
             default:
-                throw new Exception($"read_length_with_encoding: Invalid string encoding {encType} (encoding byte %{bytes[0]})");
+                throw new Exception($"Invalid string encoding {encType} (encoding byte {bytes[0]})");
         }
         
         return (length, isEncoded);
@@ -302,7 +298,7 @@ public sealed class RdbSharpParser : IDisposable
 
         var bytes = new ReadOnlySpan<byte>(payload);
         
-        return ListPackParser.ParseListpack(bytes.ToArray());
+        return ListPackParser.ParseListPack(bytes.ToArray());
     }
 
     public void Dispose()

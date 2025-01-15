@@ -1,4 +1,4 @@
-namespace RdbSharp;
+namespace RdbSharp.Entries;
 
 public class SelectDb : IEntry
 {

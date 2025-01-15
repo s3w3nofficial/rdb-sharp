@@ -1,4 +1,4 @@
-namespace RdbSharp;
+namespace RdbSharp.Entries;
 
 public enum EntryType
 {
