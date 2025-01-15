@@ -86,7 +86,7 @@ public sealed class RdbSharpParser : IDisposable
     private static KeyValuePair ReadObject(BinaryReader br, RdbType objectType)
     {
         var key = ReadString(br);
-        Console.WriteLine($"Key: {key}");
+        //Console.WriteLine($"Key: {key}");
         //Console.WriteLine(objectType);
         
         switch (objectType)
@@ -94,7 +94,6 @@ public sealed class RdbSharpParser : IDisposable
             case RdbType.STRING:
             {
                 var value = ReadString(br);
-                Console.WriteLine($"  Value (String): {value}");
                 return new KeyValuePair(key, value, objectType);
             }
             case RdbType.LIST:

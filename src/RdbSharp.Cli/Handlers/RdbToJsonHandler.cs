@@ -26,6 +26,12 @@ public class RdbToJsonHandler : IHandler
 
                     switch (kv.RdbType)
                     {
+                        case RdbType.STRING:
+                        {
+                            var value = (string) kv.Value;
+                            entires.Add(kv.Key, value);
+                            break;
+                        }
                         case RdbType.LIST:
                         {
                             var items = (List<string>)kv.Value;

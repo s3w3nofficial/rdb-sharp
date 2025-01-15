@@ -39,6 +39,12 @@ public class RdbToPrintHandler : IHandler
 
                     switch (kv.RdbType)
                     {
+                        case RdbType.STRING:
+                        {
+                            var value = (string) kv.Value;
+                            Console.WriteLine($"  Value (String): {value}");
+                            break;
+                        }
                         case RdbType.LIST:
                         {
                             var items = (List<string>)kv.Value;
