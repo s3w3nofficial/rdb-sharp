@@ -35,6 +35,18 @@ public class RdbToPrintHandler : IHandler
                     Console.WriteLine(aux.ToString());
                     break;
                 }
+                case EntryType.EXPIRETIME:
+                {
+                    var expire = (ExpireTime)entry;
+                    Console.WriteLine("Found EXPIRETIME opcode.");
+                    break;
+                }
+                case EntryType.EXPIRETIME_MS:
+                {
+                    var expire = (ExpireTimeMs)entry;
+                    Console.WriteLine($"Found EXPIRETIME MS opcode with: {expire.Miliseconds}.");
+                    break;
+                }
                 case EntryType.KV:
                 {
                     var kv = (KeyValuePair)entry;

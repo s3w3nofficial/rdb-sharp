@@ -72,13 +72,15 @@ public sealed class RdbSharpParser : IDisposable
                 var expireSize = ReadLength(_br);
                 return new ResizeDb(dbIndex, expireSize);
             }
-            case (byte)Constants.RDB_OPCODE.EXPIRETIME_MS:
-                Console.WriteLine("Found EXPIRETIME MS opcode.");
-                long expireTimeMs = _br.ReadInt64(); 
-                break;
-            case (byte)Constants.RDB_OPCODE.EXPIRETIME:
-                Console.WriteLine("Found EXPIRET MS opcode.");
-                break;
+            case (byte) Constants.RDB_OPCODE.EXPIRETIME_MS:
+            {
+                var expireTimeMs = _br.ReadInt64();
+                return new ExpireTimeMs(expireTimeMs);
+            }
+            case (byte) Constants.RDB_OPCODE.EXPIRETIME:
+            {
+                return new ExpireTime();
+            }
             default:
             {
                 var objectType = (RdbType)opcode;

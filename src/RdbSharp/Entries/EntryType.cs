@@ -9,5 +9,7 @@ public enum EntryType
     SELECT_DB,
     KV,
     RESIZE_DB,
-    AUX
+    AUX,
+    EXPIRETIME,
+    EXPIRETIME_MS
 }
