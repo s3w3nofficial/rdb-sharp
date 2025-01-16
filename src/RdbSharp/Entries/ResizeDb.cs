@@ -1,5 +1,8 @@
 namespace RdbSharp.Entries;
 
+/// <summary>
+/// ResizeDb entry type
+/// </summary>
 public class ResizeDb : IEntry
 {
     public EntryType Type => EntryType.RESIZE_DB;

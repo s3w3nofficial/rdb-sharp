@@ -1,5 +1,8 @@
 namespace RdbSharp;
 
+/// <summary>
+/// RdbType
+/// </summary>
 public enum RdbType : byte
 {
     STRING = 0,

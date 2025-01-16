@@ -1,5 +1,8 @@
 namespace RdbSharp.Entries;
 
+/// <summary>
+/// entry type
+/// </summary>
 public enum EntryType
 {
     EOF,

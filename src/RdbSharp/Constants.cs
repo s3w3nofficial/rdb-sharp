@@ -1,5 +1,8 @@
 namespace RdbSharp;
 
+/// <summary>
+/// Internal constants
+/// </summary>
 internal sealed class Constants
 {
     internal enum RDB_OPCODE : byte

@@ -1,5 +1,8 @@
 namespace RdbSharp.Entries;
 
+/// <summary>
+/// KeyValue entry type
+/// </summary>
 public class KeyValuePair : IEntry
 {
     public EntryType Type => EntryType.KV;

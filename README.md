@@ -11,7 +11,6 @@ Example:
 ```
 $ cd src/RdbSharp.Cli
 $ dotnet run ../../tests/dumps/multiple_lists_strings.rdb json
-RDB Version: 11
 {
   "string2": "Hi there!",
   "mylist1": [

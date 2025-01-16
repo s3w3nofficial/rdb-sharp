@@ -5,6 +5,9 @@ using KeyValuePair = RdbSharp.Entries.KeyValuePair;
 
 namespace RdbSharp;
 
+/// <summary>
+/// Rdb sharp parser
+/// </summary>
 public sealed class RdbSharpParser : IDisposable
 {
     private readonly BinaryReader _br;
@@ -28,11 +31,14 @@ public sealed class RdbSharpParser : IDisposable
         {
             throw new Exception($"Invalid RDB version: {versionStr}");
         }
-        Console.WriteLine($"RDB Version: {version}");
+        
+        Version = version;
         
         _fs = fs;
         _br = br;
     }
+
+    public int Version { get; set; }
 
     public IEntry? NextEntry()
     {

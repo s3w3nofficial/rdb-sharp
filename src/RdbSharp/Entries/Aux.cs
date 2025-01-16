@@ -2,6 +2,9 @@ using System.Text;
 
 namespace RdbSharp.Entries;
 
+/// <summary>
+/// Aux field entry type
+/// </summary>
 public class Aux : IEntry
 {
     private readonly byte[] _key;

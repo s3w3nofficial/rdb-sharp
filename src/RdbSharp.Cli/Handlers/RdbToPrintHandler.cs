@@ -7,6 +7,8 @@ public class RdbToPrintHandler : IHandler
 {
     public void Handle(RdbSharpParser parser)
     {
+        Console.WriteLine($"RDB Version: {parser.Version}");
+        
         IEntry? entry;
         while ((entry = parser.NextEntry()) != null)
         {

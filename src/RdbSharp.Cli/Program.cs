@@ -28,7 +28,8 @@ switch (format.ToLowerInvariant())
     }
     case "resp":
     {
-        Console.WriteLine("Not Implemented");
+        var handler = new RdbToRespHandler();
+        handler.Handle(parser);
         break;
     }
     default:

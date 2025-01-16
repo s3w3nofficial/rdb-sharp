@@ -1,3 +1,5 @@
+// Adapted from https://github.com/jwhitbeck/java-rdb-parser/blob/master/src/main/java/net/whitbeck/rdbparser/ListpackList.java
+
 using System.Text;
 
 namespace RdbSharp.Parsers;
@@ -69,7 +71,7 @@ public static class ListPackParser
             // 4) Verify that the next byte is the terminator 0xFF
             if (pos >= envelope.Length || (envelope[pos] & 0xFF) != 0xFF)
             {
-                throw new InvalidOperationException("Listpack did not end with 0xFF byte.");
+                throw new InvalidOperationException("ListPack did not end with 0xFF byte.");
             }
 
             return list;
@@ -79,10 +81,10 @@ public static class ListPackParser
         {
             // The first byte indicates the encoding or string-length info
             // We do & 0xFF to get an unsigned interpretation in int form.
-            int b = envelope[pos++] & 0xFF;
+            var b = envelope[pos++] & 0xFF;
 
             // Handle possible string encodings first
-            int strLen = 0;
+            var strLen = 0;
 
             // 6-bit string: 10xxxxxx
             if ((b & LP_ENCODING_6BIT_STR_MASK) == LP_ENCODING_6BIT_STR)
@@ -94,8 +96,8 @@ public static class ListPackParser
             else if ((b & LP_ENCODING_12BIT_STR_MASK) == LP_ENCODING_12BIT_STR)
             {
                 // Combine the leftover lower bits of b with the next byte
-                int lowerByte = envelope[pos++] & 0xFF;
-                int highBits = (b & ~LP_ENCODING_12BIT_STR_MASK) & 0x0F; // leftover bits
+                var lowerByte = envelope[pos++] & 0xFF;
+                var highBits = (b & ~LP_ENCODING_12BIT_STR_MASK) & 0x0F; // leftover bits
                 strLen = (lowerByte) | (highBits << 8);
             }
             // 32-bit string: 1111 0000 => 0xF0
@@ -203,29 +205,24 @@ public static class ListPackParser
                     | (((long)envelope[pos++] & 0xFF) << 48)
                     | (((long)envelope[pos++] & 0xFF) << 56);
 
-                // The Java code adds val to the list and then does pos++.
-                // We'll replicate that:
                 list.Add(val.ToString());
-
-                // "Ints always have a entity size of one byte" => plus 1
                 pos++;
+                
                 return;
             }
             else
             {
-                throw new InvalidOperationException("Invalid listpack envelope encoding");
+                throw new InvalidOperationException("Invalid ListPack envelope encoding");
             }
 
             // Two's-complement adjustment if value is in negative range
             if (val >= negStart)
             {
-                long diff = negMax - val;
+                var diff = negMax - val;
                 val = diff;
                 val = -val - 1;
             }
 
-            // In the Java code, it states "Ints always have a entity size of one byte."
-            // so we do an extra pos++ to skip the backlen for integer entries:
             pos++;
 
             // Finally, store the int as string
@@ -236,8 +233,6 @@ public static class ListPackParser
         {
             return len switch
             {
-                // This logic matches the Java version. It's presumably how
-                // many bytes Redis uses to store the 'previous entry length' (backlen).
                 < 128 => 1,
                 < 16384 => 2,
                 < 2097152 => 3,
