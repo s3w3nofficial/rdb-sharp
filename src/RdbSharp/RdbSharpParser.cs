@@ -120,17 +120,17 @@ public sealed class RdbSharpParser : IDisposable
             }
             case RdbType.SET:
             {
-                var length = ReadLength(br);
+                var items = new List<string>();
                 
-                Console.WriteLine($"  Set length: {length}");
+                var length = ReadLength(br);
                 
                 for (var i = 0; i < length; i++)
                 {
                     var item = ReadString(br);
-                    Console.WriteLine($"    Set item {i}: {item}");
+                    items.Add(item);
                 }
                 
-                return new KeyValuePair(key, new List<string>(), objectType);
+                return new KeyValuePair(key, items, objectType);
             }
             case RdbType.ZSET:
             case RdbType.HASH:

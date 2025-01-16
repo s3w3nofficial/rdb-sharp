@@ -51,6 +51,8 @@ public class RdbToPrintHandler : IHandler
                 {
                     var kv = (KeyValuePair)entry;
 
+                    Console.WriteLine(kv.RdbType);
+
                     switch (kv.RdbType)
                     {
                         case RdbType.STRING:
@@ -68,6 +70,19 @@ public class RdbToPrintHandler : IHandler
                             {
                                 Console.WriteLine($"    List item {i}: {item}");
                             }
+                            break;
+                        }
+                        case RdbType.SET:
+                        {
+                            var items = (List<string>)kv.Value;
+                            Console.WriteLine($"  Set length: {items.Count}");
+                            
+                            foreach (var (i, item) in items.Index())
+                            {
+                                Console.WriteLine($"    List item {i}: {item}");
+                                Console.WriteLine($"    Set item {i}: {item}");
+                            }
+                            
                             break;
                         }
                         case RdbType.LIST_QUICKLIST_2:

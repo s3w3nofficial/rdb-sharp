@@ -38,6 +38,12 @@ public class RdbToJsonHandler : IHandler
                             entires.Add(kv.Key, items);
                             break;
                         }
+                        case RdbType.SET:
+                        {
+                            var items = (List<string>)kv.Value;
+                            entires.Add(kv.Key, items);
+                            break;
+                        }
                         case RdbType.LIST_QUICKLIST_2:
                         {
                             var items = (List<string>)kv.Value;
